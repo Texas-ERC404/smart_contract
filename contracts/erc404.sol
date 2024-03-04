@@ -84,8 +84,7 @@ abstract contract ERC404 is Ownable {
 
     /// @dev Current mint counter, monotonically increasing to ensure accurate ownership
     uint256 public minted;
-    uint256 public mintFee = _getUnit()/20;
-    address public stakingAddress;
+    uint256 public mintFee = _getUnit() / 20;
 
     // Mappings
     /// @dev Balance of user in fractional representation
@@ -113,8 +112,7 @@ abstract contract ERC404 is Ownable {
 
     mapping(uint256 => TexasPoker.HandRank) internal _rank;
 
-    /// @dev Addresses whitelisted from minting / burning for gas savings (pairs, routers, etc)
-    mapping(address => bool) public whitelist;
+    mapping(uint256 => address) public stakingOwner;
 
     // Constructor
     constructor(
@@ -128,13 +126,6 @@ abstract contract ERC404 is Ownable {
         symbol = _symbol;
         decimals = _decimals;
         totalSupply = _totalNativeSupply * (10 ** decimals);
-        stakingAddress = _owner;
-    }
-
-    /// @notice Initialization function to set pairs / etc
-    ///         saving gas by avoiding mint / burn on unnecessary targets
-    function setWhitelist(address target, bool state) public onlyOwner {
-        whitelist[target] = state;
     }
 
     /// @notice Function to find owner of a given native token
@@ -231,6 +222,12 @@ abstract contract ERC404 is Ownable {
             nftBalanceOf[from] = nftBalanceOf[from] - 1;
             nftBalanceOf[to] = nftBalanceOf[to] + 1;
 
+            if (to == address(this)) {
+                stakingOwner[amountOrId] = from;
+            } else if (from == address(this)) {
+                delete stakingOwner[amountOrId];
+            }
+
             emit Transfer(from, to, amountOrId);
             emit ERC20Transfer(from, to, _getUnit());
         } else {
@@ -301,13 +298,8 @@ abstract contract ERC404 is Ownable {
         }
 
         // Skip burn for certain addresses to save gas
-        if (!whitelist[from]) {
-            uint256 tokens_to_burn = nftBalanceOf[from] -
-                (balanceOf[from] / unit);
-
-            for (uint256 i = 0; i < tokens_to_burn; i++) {
-                _burn(from);
-            }
+        for (uint256 i = balanceOf[from] / unit; i < nftBalanceOf[from]; i++) {
+            _burn(from);
         }
 
         emit ERC20Transfer(from, to, amount);
@@ -319,21 +311,49 @@ abstract contract ERC404 is Ownable {
         return 10 ** decimals;
     }
 
-    function staking(uint256[] memory ids) public{
-        for (uint i = 0;i<ids.length;i++){
+    function staking(uint256[] memory ids) public virtual{
+        for (uint i = 0; i < ids.length; i++) {
             require(ownerOf(ids[i]) == msg.sender);
-            transferFrom(msg.sender,stakingAddress,ids[i]);
+            transferFrom(msg.sender, address(this), ids[i]);
         }
+    }
+
+    function unstaking(uint256[] memory ids) public virtual{
+        for (uint i = 0; i < ids.length; i++) {
+            require(stakingOwner[ids[i]] == msg.sender);
+            transferFrom(address(this), msg.sender, ids[i]);
+        }
+    }
+
+    function remint(uint256 number) public virtual returns (uint256) {
+        uint256 unit = _getUnit();
+        require(nftBalanceOf[msg.sender] > 0);
+        for (uint i = 0; i < number; i++) {
+            if (
+                (balanceOf[msg.sender] - mintFee) / unit <
+                nftBalanceOf[msg.sender]
+            ) {
+                return i;
+            }
+            balanceOf[msg.sender] -= mintFee;
+            balanceOf[address(this)] += mintFee;
+            _burn(msg.sender);
+            _mint(msg.sender);
+        }
+        return number;
     }
 
     function mint(uint256 number) public virtual returns (uint256) {
         uint256 unit = _getUnit();
         for (uint i = 0; i < number; i++) {
-            if ((balanceOf[msg.sender]-mintFee) / unit < nftBalanceOf[msg.sender]) {
+            if (
+                (balanceOf[msg.sender] - mintFee) / unit <=
+                nftBalanceOf[msg.sender]
+            ) {
                 return i;
             }
             balanceOf[msg.sender] -= mintFee;
-            balanceOf[stakingAddress] += mintFee;
+            balanceOf[address(this)] += mintFee;
             _mint(msg.sender);
         }
         return number;
@@ -353,7 +373,13 @@ abstract contract ERC404 is Ownable {
         if (_ownerOf[id] != address(0)) {
             revert AlreadyExists();
         }
-        uint256 rand = generateRandomNumber();
+
+        bytes32 blockHash = blockhash(block.number);
+
+        bytes32 mixed = keccak256(
+            abi.encodePacked(blockHash, msg.sender, minted)
+        );
+        uint256 rand = uint256(mixed);
 
         TexasPoker t;
         TexasPoker.Card[5] memory cards = t.convertToTexasPoker(rand);
@@ -395,15 +421,5 @@ abstract contract ERC404 is Ownable {
             emit Transfer(from, address(0), id);
             return;
         }
-    }
-
-    function generateRandomNumber() public view returns (uint256) {
-        bytes32 blockHash = blockhash(block.number);
-
-        bytes32 mixed = keccak256(
-            abi.encodePacked(blockHash, msg.sender, minted)
-        );
-
-        return uint256(mixed);
     }
 }
