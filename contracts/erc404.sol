@@ -311,30 +311,48 @@ abstract contract ERC404 is Ownable {
         return 10 ** decimals;
     }
 
-    function staking(uint256[] memory ids) public virtual{
+    function staking(uint256[] memory ids) public virtual {
         for (uint i = 0; i < ids.length; i++) {
             require(ownerOf(ids[i]) == msg.sender);
             transferFrom(msg.sender, address(this), ids[i]);
         }
     }
 
-    function unstaking(uint256[] memory ids) public virtual{
+    function unstaking(uint256[] memory ids) public virtual {
         for (uint i = 0; i < ids.length; i++) {
             require(stakingOwner[ids[i]] == msg.sender);
             transferFrom(address(this), msg.sender, ids[i]);
+        }
+    }
+    
+    function stakingByRank(uint256[] memory ranks) public virtual {
+        
+        for (uint i = 0; i < ranks.length; i++) {
+            TexasPoker.HandRank rank = TexasPoker.HandRank(ranks[i]);
+            uint256 num = _owned[msg.sender][rank].length;
+
+            for (uint j = 0; j < num; j++) {
+                uint256 id = _owned[msg.sender][rank][_owned[msg.sender][rank].length - 1];
+                require(ownerOf(id) == msg.sender);
+                transferFrom(msg.sender, address(this), id);
+            }
         }
     }
 
     function remint(uint256 number) public virtual returns (uint256) {
         uint256 unit = _getUnit();
         require(nftBalanceOf[msg.sender] > 0);
+
+        if ((mintFee + unit) * number < balanceOf[msg.sender]) {
+            return 0;
+        }
+
+        // Gather Fees enough fees
+        for (; (balanceOf[msg.sender] - unit * nftBalanceOf[msg.sender]) < mintFee * number; ) {
+            _burn(msg.sender);
+        }
+
         for (uint i = 0; i < number; i++) {
-            if (
-                (balanceOf[msg.sender] - mintFee) / unit <
-                nftBalanceOf[msg.sender]
-            ) {
-                return i;
-            }
             balanceOf[msg.sender] -= mintFee;
             balanceOf[address(this)] += mintFee;
             _burn(msg.sender);
@@ -352,8 +370,10 @@ abstract contract ERC404 is Ownable {
             ) {
                 return i;
             }
+
             balanceOf[msg.sender] -= mintFee;
             balanceOf[address(this)] += mintFee;
+
             _mint(msg.sender);
         }
         return number;
