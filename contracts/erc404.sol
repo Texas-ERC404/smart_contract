@@ -111,6 +111,7 @@ abstract contract ERC404 is Ownable {
     mapping(uint256 => uint256) internal _ownedIndex;
 
     mapping(uint256 => TexasPoker.HandRank) internal _rank;
+    mapping(uint256 => uint256) internal _card;
 
     mapping(uint256 => address) public stakingOwner;
 
@@ -311,20 +312,20 @@ abstract contract ERC404 is Ownable {
         return 10 ** decimals;
     }
 
-    function staking(uint256[] memory ids) public virtual {
+    function staking(uint256[] memory ids) public virtual{
         for (uint i = 0; i < ids.length; i++) {
             require(ownerOf(ids[i]) == msg.sender);
             transferFrom(msg.sender, address(this), ids[i]);
         }
     }
 
-    function unstaking(uint256[] memory ids) public virtual {
+    function unstaking(uint256[] memory ids) public virtual{
         for (uint i = 0; i < ids.length; i++) {
             require(stakingOwner[ids[i]] == msg.sender);
             transferFrom(address(this), msg.sender, ids[i]);
         }
     }
-    
+
     function stakingByRank(uint256[] memory ranks) public virtual {
         
         for (uint i = 0; i < ranks.length; i++) {
@@ -401,15 +402,15 @@ abstract contract ERC404 is Ownable {
         );
         uint256 rand = uint256(mixed);
 
-        TexasPoker t;
-        TexasPoker.Card[5] memory cards = t.convertToTexasPoker(rand);
+        TexasPoker.Card[5] memory cards = TexasPoker.convertToTexasPoker(rand);
 
-        TexasPoker.HandRank rank = t.evaluateHand(cards);
+        TexasPoker.HandRank rank = TexasPoker.evaluateHand(cards);
 
         _ownerOf[id] = to;
         _owned[to][rank].push(id);
         _ownedIndex[id] = _owned[to][rank].length - 1;
         _rank[id] = rank;
+        _card[id] = TexasPoker.card2uint(cards);
         nftBalanceOf[to] = nftBalanceOf[to] + 1;
 
         emit Transfer(address(0), to, id);
