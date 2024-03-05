@@ -97,8 +97,8 @@ contract TexasPoker {
     }
 
     function isStraight(Card[5] memory cards) internal pure returns (bool) {
-        if (cards[0].rank == 0 && cards[1].rank == 9 && cards[2].rank == 10 && cards[3].rank == 11 && cards[04].rank == 12) {
-            return true
+        if (cards[0].rank == 0 && cards[1].rank == 9 && cards[2].rank == 10 && cards[3].rank == 11 && cards[4].rank == 12) {
+            return true;
         }
         for (uint256 i = 1; i < 5; i++) {
             if (cards[i].rank != cards[i - 1].rank + 1) {
