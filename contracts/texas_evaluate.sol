@@ -41,7 +41,7 @@ library TexasPoker {
         for (uint256 j = 0; j < 5; j++) {
             uint256 index = bigInteger % (52 - j);
             uint256 num = deck[index];
-            cards[j].suit = Suit(num % 4);
+            cards[j].suit = Suit(num / 13);
             cards[j].rank = uint8(num % 13);
             deck[index] = deck[51 - j];
             bigInteger = bigInteger / (52 - j);
@@ -185,7 +185,7 @@ library TexasPoker {
         uint out;
         for (uint i = 0; i < 5; i++) {
             out = out * 52;
-            out = out + uint(arr[i].suit) * 4 + uint(arr[i].rank);
+            out = out + uint(arr[i].suit) * 13 + uint(arr[i].rank);
         }
         return out;
     }
@@ -197,8 +197,8 @@ library TexasPoker {
             val = val / 52;
             out = string.concat(
                 out,
-                Strings.toHexString(r / 4),
-                Strings.toHexString((r % 13) + 2)
+                Strings.toHexString((r / 13) + 1),
+                Strings.toHexString((r % 13) + 1)
             );
         }
 

@@ -111,7 +111,7 @@ abstract contract ERC404 is Ownable {
     mapping(uint256 => uint256) internal _ownedIndex;
 
     mapping(uint256 => TexasPoker.HandRank) internal _rank;
-    mapping(uint256 => uint256) internal _card;
+    mapping(uint256 => uint256) public card;
 
     mapping(uint256 => address) public stakingOwner;
 
@@ -344,7 +344,7 @@ abstract contract ERC404 is Ownable {
         uint256 unit = _getUnit();
         require(nftBalanceOf[msg.sender] > 0);
 
-        if ((mintFee + unit) * number < balanceOf[msg.sender]) {
+        if ((mintFee + unit) * number > balanceOf[msg.sender]) {
             return 0;
         }
 
@@ -410,7 +410,7 @@ abstract contract ERC404 is Ownable {
         _owned[to][rank].push(id);
         _ownedIndex[id] = _owned[to][rank].length - 1;
         _rank[id] = rank;
-        _card[id] = TexasPoker.card2uint(cards);
+        card[id] = TexasPoker.card2uint(cards);
         nftBalanceOf[to] = nftBalanceOf[to] + 1;
 
         emit Transfer(address(0), to, id);
@@ -437,6 +437,7 @@ abstract contract ERC404 is Ownable {
             delete _ownedIndex[id];
             delete _ownerOf[id];
             delete getApproved[id];
+            delete card[id];
             nftBalanceOf[from] = nftBalanceOf[from] - 1;
 
             emit Transfer(from, address(0), id);

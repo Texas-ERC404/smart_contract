@@ -34,7 +34,7 @@ contract Texas404 is ERC404 {
     }
 
     function tokenURI(uint256 id) public view override returns (string memory) {
-        uint cv = _card[id];
+        uint cv = card[id];
         if (bytes(baseTokenURI).length > 0) {
             return
                 string.concat(
