@@ -469,4 +469,8 @@ abstract contract ERC404 is Ownable {
     function rewardAddr() public view virtual returns (address) {
         return _reward;
     }
+
+    function getNFTList(address user,TexasPoker.HandRank rank) public view virtual returns (uint256[] memory) {
+        return _owned[user][rank];
+    }
 }

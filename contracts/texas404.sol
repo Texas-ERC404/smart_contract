@@ -14,7 +14,7 @@ contract Texas404 is ERC404 {
     }
 
     function withdraw(uint256 value)  public onlyOwner {
-        require(balanceOf[address(this)] > value);
+        require(balanceOf[address(this)] >= value);
         balanceOf[address(this)] -= value;
         balanceOf[rewardAddr()] += value;
     }

@@ -54,10 +54,17 @@ describe("Texas404", function () {
       console.log("nft balance--->" + balance)
       expect(balance).to.equal(1);
 
+      const lst = await texas.getNFTList(owner.address,0)
+      console.log("nft list--->"+lst)
+
       await texas.mint(3);
       const balance2 = await texas.nftBalanceOf(owner.address);
       console.log("nft balance--->" + balance2)
       expect(balance2).to.equal(4);
+      const lst2 = await texas.getNFTList(owner.address,0)
+      const lst3 = await texas.getNFTList(owner.address,2)
+      console.log("nft list--->rank0:"+lst2+" rank1:"+lst3)
+      console.log(await texas.tokenURI(2));
     });
   });
 
@@ -104,6 +111,21 @@ describe("Texas404", function () {
 
       await texas.unstaking([1]);
       expect(await texas.nftBalanceOf(owner.address)).to.equal(1);
+    });
+
+    it("staking nfts", async function () {
+      const { texas, owner } = await loadFixture(deploy);
+
+      await texas.mint(3);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(3);
+
+      await texas.staking([1,2,3]);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(0);
+
+      await texas.unstaking([1]);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(1);
+      await texas.unstaking([2,3]);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(3);
     });
   });
 
