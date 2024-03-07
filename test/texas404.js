@@ -91,4 +91,20 @@ describe("Texas404", function () {
     });
   });
 
+
+  describe("staking", function () {
+    it("staking nft", async function () {
+      const { texas, owner } = await loadFixture(deploy);
+
+      await texas.mint(1);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(1);
+
+      await texas.staking([1]);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(0);
+
+      await texas.unstaking([1]);
+      expect(await texas.nftBalanceOf(owner.address)).to.equal(1);
+    });
+  });
+
 });

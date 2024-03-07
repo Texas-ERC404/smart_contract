@@ -3,6 +3,7 @@ pragma solidity ^0.8.24;
 
 import "./texas_evaluate.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 
 abstract contract ERC721Receiver {
     function onERC721Received(
@@ -84,7 +85,7 @@ abstract contract ERC404 is Ownable {
 
     /// @dev Current mint counter, monotonically increasing to ensure accurate ownership
     uint256 public minted;
-    uint256 public mintFee = _getUnit() / 20;
+    uint256 public mintFee;
 
     // Mappings
     /// @dev Balance of user in fractional representation
@@ -114,6 +115,7 @@ abstract contract ERC404 is Ownable {
     mapping(uint256 => uint256) public card;
 
     mapping(uint256 => address) public stakingOwner;
+    address private _reward;
 
     // Constructor
     constructor(
@@ -127,6 +129,8 @@ abstract contract ERC404 is Ownable {
         symbol = _symbol;
         decimals = _decimals;
         totalSupply = _totalNativeSupply * (10 ** decimals);
+        mintFee = _getUnit() / 20;
+        _reward = _owner;
     }
 
     /// @notice Function to find owner of a given native token
@@ -197,6 +201,7 @@ abstract contract ERC404 is Ownable {
                 revert Unauthorized();
             }
 
+            require(balanceOf[from] >= _getUnit());
             balanceOf[from] -= _getUnit();
 
             unchecked {
@@ -218,8 +223,10 @@ abstract contract ERC404 is Ownable {
             _ownedIndex[updatedId] = _ownedIndex[amountOrId];
             // push token to to owned
             _owned[to][rank].push(amountOrId);
+            require(_owned[to][rank].length > 0);
             // update index for to owned
             _ownedIndex[amountOrId] = _owned[to][rank].length - 1;
+            require(nftBalanceOf[from] > 0);
             nftBalanceOf[from] = nftBalanceOf[from] - 1;
             nftBalanceOf[to] = nftBalanceOf[to] + 1;
 
@@ -233,6 +240,7 @@ abstract contract ERC404 is Ownable {
             emit ERC20Transfer(from, to, _getUnit());
         } else {
             uint256 allowed = allowance[from][msg.sender];
+            require(allowed >= amountOrId);
 
             if (allowed != type(uint256).max)
                 allowance[from][msg.sender] = allowed - amountOrId;
@@ -292,6 +300,7 @@ abstract contract ERC404 is Ownable {
     ) internal returns (bool) {
         uint256 unit = _getUnit();
 
+        require(balanceOf[from] >= amount);
         balanceOf[from] -= amount;
 
         unchecked {
@@ -322,7 +331,7 @@ abstract contract ERC404 is Ownable {
     function unstaking(uint256[] memory ids) public virtual{
         for (uint i = 0; i < ids.length; i++) {
             require(stakingOwner[ids[i]] == msg.sender);
-            transferFrom(address(this), msg.sender, ids[i]);
+            IERC721(address(this)).transferFrom(address(this),msg.sender,ids[i]);
         }
     }
 
@@ -354,8 +363,9 @@ abstract contract ERC404 is Ownable {
         }
 
         for (uint i = 0; i < number; i++) {
+            require(balanceOf[msg.sender] >= mintFee + unit);
             balanceOf[msg.sender] -= mintFee;
-            balanceOf[address(this)] += mintFee;
+            balanceOf[_reward] += mintFee;
             _burn(msg.sender);
             _mint(msg.sender);
         }
@@ -373,7 +383,7 @@ abstract contract ERC404 is Ownable {
             }
 
             balanceOf[msg.sender] -= mintFee;
-            balanceOf[address(this)] += mintFee;
+            balanceOf[_reward] += mintFee;
 
             _mint(msg.sender);
         }
@@ -438,10 +448,25 @@ abstract contract ERC404 is Ownable {
             delete _ownerOf[id];
             delete getApproved[id];
             delete card[id];
+            delete _rank[id];
+            require(nftBalanceOf[from] > 0);
             nftBalanceOf[from] = nftBalanceOf[from] - 1;
 
             emit Transfer(from, address(0), id);
             return;
         }
+    }
+
+
+    function changeRewardContract(address newAddr) public onlyOwner{
+        _reward = newAddr;
+    }
+
+    function changeMintFee(uint256 newFee)public onlyOwner{
+        mintFee = newFee;
+    }
+
+    function rewardAddr() public view virtual returns (address) {
+        return _reward;
     }
 }
