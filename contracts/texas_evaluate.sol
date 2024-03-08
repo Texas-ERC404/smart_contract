@@ -47,13 +47,14 @@ library TexasPoker {
             bigInteger = bigInteger / (52 - j);
         }
 
+        sort(cards);
         return cards;
     }
 
     function evaluateHand(
         Card[5] memory cards
     ) external pure returns (HandRank) {
-        sort(cards);
+        // sort(cards);
 
         if (isRoyalFlush(cards)) {
             return HandRank.RoyalFlush;
@@ -196,10 +197,45 @@ library TexasPoker {
             uint r = val % 52;
             val = val / 52;
             out = string.concat(
-                out,
                 Strings.toHexString((r / 13) + 1),
-                Strings.toHexString((r % 13) + 1)
+                Strings.toHexString((r % 13) + 1),
+                out
             );
+        }
+
+        return out;
+    }
+
+    function uint2UnicodeStr(uint val) public pure returns (string memory) {
+        string memory out; 
+        string memory tp;
+        string memory va;
+        for (uint i = 0; i < 5; i++) {
+            uint r = val % 52;
+            val = val / 52;
+
+            if ((r / 13) == 0) {
+                tp = "\u2660";
+            } else if ((r / 13) == 1) {
+                tp = "\u2665";
+            } else if ((r / 13) == 2) {
+                tp = "\u2663";
+            } else {
+                tp = "\u2666";
+            }
+            va = Strings.toString((r % 13) + 1);
+            if ((r % 13) == 0) {
+                va = "A";
+            } else if ((r % 13) == 10) {
+                va = "J";
+            } else if ((r % 13) == 11) {
+                va = "Q";
+            } else if ((r % 13) == 12) {
+                va = "K";
+            }
+
+            out = string.concat(tp, va, out);
+
         }
 
         return out;

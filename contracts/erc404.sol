@@ -69,6 +69,7 @@ abstract contract ERC404 is Ownable {
 
     error Unauthorized();
     error InvalidOwner();
+    error InvalidOperator();
 
     // Metadata
     /// @dev Token name
@@ -172,6 +173,10 @@ abstract contract ERC404 is Ownable {
 
     /// @notice Function native approvals
     function setApprovalForAll(address operator, bool approved) public virtual {
+        // Prevent approvals to 0x0.
+        if (operator == address(0)) {
+            revert InvalidOperator();
+        }
         isApprovedForAll[msg.sender][operator] = approved;
 
         emit ApprovalForAll(msg.sender, operator, approved);
@@ -307,7 +312,6 @@ abstract contract ERC404 is Ownable {
             balanceOf[to] += amount;
         }
 
-        // Skip burn for certain addresses to save gas
         for (uint256 i = balanceOf[from] / unit; i < nftBalanceOf[from]; i++) {
             _burn(from);
         }
@@ -331,14 +335,14 @@ abstract contract ERC404 is Ownable {
     function unstaking(uint256[] memory ids) public virtual{
         for (uint i = 0; i < ids.length; i++) {
             require(stakingOwner[ids[i]] == msg.sender);
-            IERC721(address(this)).transferFrom(address(this),msg.sender,ids[i]);
+            IERC721(address(this)).transferFrom(address(this), msg.sender, ids[i]);
         }
     }
 
-    function stakingByRank(uint256[] memory ranks) public virtual {
+    function stakingByRank(TexasPoker.HandRank[] memory ranks) public virtual {
         
         for (uint i = 0; i < ranks.length; i++) {
-            TexasPoker.HandRank rank = TexasPoker.HandRank(ranks[i]);
+            TexasPoker.HandRank rank = ranks[i];
             uint256 num = _owned[msg.sender][rank].length;
 
             for (uint j = 0; j < num; j++) {
@@ -363,7 +367,7 @@ abstract contract ERC404 is Ownable {
         }
 
         for (uint i = 0; i < number; i++) {
-            require(balanceOf[msg.sender] >= mintFee + unit);
+            // require(balanceOf[msg.sender] >= mintFee + unit);
             balanceOf[msg.sender] -= mintFee;
             balanceOf[_reward] += mintFee;
             _burn(msg.sender);
@@ -450,6 +454,7 @@ abstract contract ERC404 is Ownable {
             delete card[id];
             delete _rank[id];
             require(nftBalanceOf[from] > 0);
+            delete _rank[id];
             nftBalanceOf[from] = nftBalanceOf[from] - 1;
 
             emit Transfer(from, address(0), id);
@@ -458,11 +463,11 @@ abstract contract ERC404 is Ownable {
     }
 
 
-    function changeRewardContract(address newAddr) public onlyOwner{
+    function setRewardContract(address newAddr) public onlyOwner{
         _reward = newAddr;
     }
 
-    function changeMintFee(uint256 newFee)public onlyOwner{
+    function setMintFee(uint256 newFee)public onlyOwner{
         mintFee = newFee;
     }
 
@@ -472,5 +477,9 @@ abstract contract ERC404 is Ownable {
 
     function getNFTList(address user,TexasPoker.HandRank rank) public view virtual returns (uint256[] memory) {
         return _owned[user][rank];
+    }
+
+    function getCards(uint256 id) public view virtual returns (string memory) {
+        return TexasPoker.uint2UnicodeStr(card[id]);
     }
 }
