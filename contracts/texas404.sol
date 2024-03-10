@@ -1,8 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import "./erc404.sol";
 import "@openzeppelin/contracts/utils/Strings.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "./erc404.sol";
 import "./texas_evaluate.sol";
 
 // https://texas404.com
@@ -13,6 +14,8 @@ contract Texas404 is ERC404 {
     uint stageTwoPrice = 0.0005 ether;
     uint stageOneAmount = 77968;
     uint stageTwoAmount = 129948;
+    bool claimState = false;
+    mapping(address => uint256) public rewardMap;
 
     constructor() ERC404("Texas404", "txc", 18, 2598960, msg.sender) {
         balanceOf[msg.sender] = (2598960 - stageOneAmount - stageTwoAmount) * 10 ** 18;
@@ -76,5 +79,24 @@ contract Texas404 is ERC404 {
                     ".json"
                 );
         }
+    }
+
+    function setClaimState(bool _claimState) public onlyOwner {
+        claimState = _claimState;
+    }
+
+    function setRewards(address[] memory addrs, uint256[] memory rewards) public onlyOwner {
+        require(addrs.length == rewards.length, 'Wrong params!');
+        for (uint i = 0; i < addrs.length; i++) {
+            rewardMap[addrs[i]] = rewards[i];
+        }
+    }
+
+    function claim() public {
+        require(claimState == true, "Claiming is not open yet!");
+        require(rewardMap[msg.sender] > 0, "Not in reward list!");
+
+        IERC20(address(this)).transfer(msg.sender, rewardMap[msg.sender]);
+        delete rewardMap[msg.sender];
     }
 }
