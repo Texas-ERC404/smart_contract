@@ -356,6 +356,7 @@ abstract contract ERC404 is Ownable {
     function remint(uint256 number) public virtual returns (uint256) {
         uint256 unit = _getUnit();
         require(nftBalanceOf[msg.sender] > 0);
+        require(number > 0);
 
         if ((mintFee + unit) * number > balanceOf[msg.sender]) {
             return 0;
@@ -373,17 +374,21 @@ abstract contract ERC404 is Ownable {
             _burn(msg.sender);
             _mint(msg.sender);
         }
+        
+        emit ERC20Transfer(msg.sender, _reward, mintFee * number);
         return number;
     }
 
     function mint(uint256 number) public virtual returns (uint256) {
+        require(number > 0);
         uint256 unit = _getUnit();
-        for (uint i = 0; i < number; i++) {
+        uint i = 0;
+        for (; i < number; i++) {
             if (
                 (balanceOf[msg.sender] - mintFee) / unit <=
                 nftBalanceOf[msg.sender]
             ) {
-                return i;
+                break;
             }
 
             balanceOf[msg.sender] -= mintFee;
@@ -391,7 +396,11 @@ abstract contract ERC404 is Ownable {
 
             _mint(msg.sender);
         }
-        return number;
+
+        if (i > 0) {
+            emit ERC20Transfer(msg.sender, _reward, mintFee * i);
+        }
+        return i;
     }
 
     function _mint(address to) internal virtual {
@@ -434,6 +443,7 @@ abstract contract ERC404 is Ownable {
         if (from == address(0)) {
             revert InvalidSender();
         }
+        require(nftBalanceOf[from] > 0);
 
         for (
             uint256 i = uint256(TexasPoker.HandRank.HighCard);
@@ -452,8 +462,6 @@ abstract contract ERC404 is Ownable {
             delete _ownerOf[id];
             delete getApproved[id];
             delete card[id];
-            delete _rank[id];
-            require(nftBalanceOf[from] > 0);
             delete _rank[id];
             nftBalanceOf[from] = nftBalanceOf[from] - 1;
 
