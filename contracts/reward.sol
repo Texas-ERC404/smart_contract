@@ -17,14 +17,21 @@ contract Texas404Reward is Ownable, EIP712 {
     error ERC2612InvalidSigner(address signer, address owner);
     mapping(uint256 => uint256) public used;
 
+    address public sender;
+
     event Claim(address indexed user, uint256 indexed value, uint256 nonce);
 
-    constructor(address addr) Ownable(msg.sender) EIP712("texas404", "1") {
+    constructor(address addr) Ownable(msg.sender) EIP712("texas404", "1.0") {
         texas = addr;
+        sender = msg.sender;
     }
 
-    function changeTexasAddr(address newAddr) public onlyOwner {
+    function setTexasAddr(address newAddr) public onlyOwner {
         texas = newAddr;
+    }
+
+    function setSender(address addr) public onlyOwner {
+        sender = addr;
     }
 
     function claim(
@@ -37,16 +44,26 @@ contract Texas404Reward is Ownable, EIP712 {
         bytes32 structHash = keccak256(
             abi.encode(CLAIM_TYPEHASH, msg.sender, value, nonce)
         );
-        require(used[nonce] == 0);
+        require(used[nonce] == 0, "nonce used");
         used[nonce] = 1;
 
         bytes32 hash = _hashTypedDataV4(structHash);
 
         address signer = ECDSA.recover(hash, v, r, s);
-        if (signer != owner()) {
-            revert ERC2612InvalidSigner(signer, owner());
+        if (signer != sender) {
+            revert ERC2612InvalidSigner(signer, sender);
         }
         IERC20(texas).transfer(msg.sender, value);
         emit Claim(msg.sender, value, nonce);
+    }
+
+    function claimByOwner(address user, uint256 value, uint256 nonce) public {
+        if (msg.sender != sender) {
+            revert ERC2612InvalidSigner(msg.sender, sender);
+        }
+        require(used[nonce] == 0, "nonce used");
+        used[nonce] = 1;
+        IERC20(texas).transfer(user, value);
+        emit Claim(user, value, nonce);
     }
 }
