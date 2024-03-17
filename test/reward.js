@@ -2,6 +2,7 @@ const {
     loadFixture,
 } = require("@nomicfoundation/hardhat-toolbox/network-helpers");
 const { expect } = require("chai");
+const RewardABI = require('./reward_abi.json');
 
 describe("Texas404Reward", function () {
     // We define a fixture to reuse the same setup in every test.
@@ -20,7 +21,7 @@ describe("Texas404Reward", function () {
         const texas = await Texas404.deploy();
 
         const TexasReward = await ethers.getContractFactory("Texas404Reward");
-        const reward = await TexasReward.deploy(texas);
+        const reward = await TexasReward.deploy(texas,owner);
 
         await texas.setRewardContract(reward);
 

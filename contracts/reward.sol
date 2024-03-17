@@ -21,9 +21,9 @@ contract Texas404Reward is Ownable, EIP712 {
 
     event Claim(address indexed user, uint256 indexed value, uint256 nonce);
 
-    constructor(address addr) Ownable(msg.sender) EIP712("texas404", "1.0") {
-        texas = addr;
-        sender = msg.sender;
+    constructor(address erc20, address owner) Ownable(owner) EIP712("texas404", "1.0") {
+        texas = erc20;
+        sender = owner;
     }
 
     function setTexasAddr(address newAddr) public onlyOwner {
