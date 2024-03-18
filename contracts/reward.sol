@@ -15,7 +15,7 @@ contract Texas404Reward is Ownable, EIP712 {
         keccak256("Claim(address user,uint256 value,uint256 nonce)");
     address public texas;
     error ERC2612InvalidSigner(address signer, address owner);
-    mapping(uint256 => uint256) public used;
+    mapping(uint256 => bool) public used;
 
     address public sender;
 
@@ -44,11 +44,10 @@ contract Texas404Reward is Ownable, EIP712 {
         bytes32 structHash = keccak256(
             abi.encode(CLAIM_TYPEHASH, msg.sender, value, nonce)
         );
-        require(used[nonce] == 0, "nonce used");
-        used[nonce] = 1;
+        require(used[nonce] == false, "Nonce used!");
+        used[nonce] = true;
 
         bytes32 hash = _hashTypedDataV4(structHash);
-
         address signer = ECDSA.recover(hash, v, r, s);
         if (signer != sender) {
             revert ERC2612InvalidSigner(signer, sender);
@@ -61,8 +60,8 @@ contract Texas404Reward is Ownable, EIP712 {
         if (msg.sender != sender) {
             revert ERC2612InvalidSigner(msg.sender, sender);
         }
-        require(used[nonce] == 0, "nonce used");
-        used[nonce] = 1;
+        require(used[nonce] == false, "Nonce used!");
+        used[nonce] = true;
         IERC20(texas).transfer(user, value);
         emit Claim(user, value, nonce);
     }
