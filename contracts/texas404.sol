@@ -10,7 +10,7 @@ import "./reward.sol";
 contract Texas404 is ERC404 {
     string public baseTokenURI;
 
-    constructor() ERC404("Texas404", "txc", 18, 2598960, msg.sender) {
+    constructor() ERC404("Texas404", "TXC", 18, 2598960, msg.sender) {
         balanceOf[msg.sender] = 2598960 * 10 ** 18;
         Texas404Reward rwd = new Texas404Reward(address(this), msg.sender);
         setRewardContract(address(rwd));
