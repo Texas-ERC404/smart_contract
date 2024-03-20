@@ -14,12 +14,14 @@ contract Texas404 is ERC404 {
         balanceOf[msg.sender] = 2598960 * 10 ** 18;
         Texas404Reward rwd = new Texas404Reward(address(this), msg.sender);
         setRewardContract(address(rwd));
+        evSend(address(0), msg.sender, 2598960 * 10 ** 18);
     }
 
     function withdraw(uint256 value) public onlyOwner {
         require(balanceOf[address(this)] >= value);
         balanceOf[address(this)] -= value;
         balanceOf[rewardAddr()] += value;
+        evSend(address(this), rewardAddr(), value);
     }
 
     function withdrawETH() public onlyOwner {

@@ -54,7 +54,7 @@ describe("Texas404Reward", function () {
 
             await expect(
                 reward.claimByOwner(otherAccount.address, 1000000000000000000n, 1)
-            ).to.be.revertedWith("nonce used");
+            ).to.be.revertedWith("Nonce used!");
         });
 
         it("claim with sign", async function () {
@@ -99,7 +99,7 @@ describe("Texas404Reward", function () {
 
             await expect(
                 reward.claimByOwner(otherAccount.address, 1000000000n, 11)
-            ).to.be.revertedWith("nonce used");
+            ).to.be.revertedWith("Nonce used!");
         });
     });
 

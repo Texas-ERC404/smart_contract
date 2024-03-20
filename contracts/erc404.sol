@@ -34,11 +34,6 @@ abstract contract ERC721Receiver {
 ///
 abstract contract ERC404 is Ownable {
     // Events
-    event ERC20Transfer(
-        address indexed from,
-        address indexed to,
-        uint256 amount
-    );
     event Approval(
         address indexed owner,
         address indexed spender,
@@ -88,6 +83,10 @@ abstract contract ERC404 is Ownable {
     uint256 public minted;
     uint256 public mintFee;
 
+    /// @dev `keccak256(bytes("Transfer(address,address,uint256)"))`.
+    uint256 private constant _TRANSFER_EVENT_SIGNATURE 
+        = 0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef;
+
     // Mappings
     /// @dev Balance of user in fractional representation
     mapping(address => uint256) public balanceOf;
@@ -132,6 +131,15 @@ abstract contract ERC404 is Ownable {
         totalSupply = _totalNativeSupply * (10 ** decimals);
         mintFee = _getUnit() / 20;
         _reward = _owner;
+    }
+
+    function evSend(address from, address to, uint256 amount) internal {
+        /// @solidity memory-safe-assembly
+        assembly {
+            // Emit the {Transfer} event.
+            mstore(0x00, amount)
+            log3(0x00, 0x20, _TRANSFER_EVENT_SIGNATURE, shr(96, shl(96, from)), shr(96, shl(96, to)))
+        }
     }
 
     /// @notice Function to find owner of a given native token
@@ -242,7 +250,7 @@ abstract contract ERC404 is Ownable {
             }
 
             emit Transfer(from, to, amountOrId);
-            emit ERC20Transfer(from, to, _getUnit());
+            evSend(from, to, _getUnit());
         } else {
             uint256 allowed = allowance[from][msg.sender];
             require(allowed >= amountOrId);
@@ -316,7 +324,7 @@ abstract contract ERC404 is Ownable {
             _burn(from);
         }
 
-        emit ERC20Transfer(from, to, amount);
+        evSend(from, to, amount);
         return true;
     }
 
@@ -357,10 +365,7 @@ abstract contract ERC404 is Ownable {
         uint256 unit = _getUnit();
         require(nftBalanceOf[msg.sender] > 0);
         require(number > 0);
-
-        if ((mintFee + unit) * number > balanceOf[msg.sender]) {
-            return 0;
-        }
+        require(balanceOf[msg.sender] >= (mintFee + unit) * number);
 
         // Gather Fees enough fees
         for (; (balanceOf[msg.sender] - unit * nftBalanceOf[msg.sender]) < mintFee * number; ) {
@@ -375,12 +380,13 @@ abstract contract ERC404 is Ownable {
             _mint(msg.sender);
         }
         
-        emit ERC20Transfer(msg.sender, _reward, mintFee * number);
+        evSend(msg.sender, _reward, mintFee * number);
         return number;
     }
 
     function mint(uint256 number) public virtual returns (uint256) {
         require(number > 0);
+        require(balanceOf[msg.sender] > 1);
         uint256 unit = _getUnit();
         uint i = 0;
         for (; i < number; i++) {
@@ -398,7 +404,7 @@ abstract contract ERC404 is Ownable {
         }
 
         if (i > 0) {
-            emit ERC20Transfer(msg.sender, _reward, mintFee * i);
+            evSend(msg.sender, _reward, mintFee * i);
         }
         return i;
     }

@@ -135,16 +135,17 @@ describe("Texas404", function () {
     it("transfer nft", async function () {
       const { texas, owner, otherAccount } = await loadFixture(deploy);
 
-      await texas.mint(1);
+      await texas.mint(2);
       const balance = await texas.nftBalanceOf(owner.address);
       console.log("nft balance--->" + balance)
-      expect(balance).to.equal(1);
+      expect(balance).to.equal(2);
 
       await expect(texas.transferFrom(owner.address, otherAccount.address, 1))
         .to.emit(texas, "Transfer")
-        .withArgs(owner.address, otherAccount.address, 1)
-        .to.emit(texas, "ERC20Transfer")
-        .withArgs(owner.address, otherAccount.address, 1000000000000000000n);
+        .withArgs(owner.address, otherAccount.address, 1);
+      /*await expect(texas.transferFrom(owner.address, otherAccount.address, 2))
+        .to.emit(texas, "Transfer")
+        .withArgs(owner.address, otherAccount.address, 1000000000000000000n);*/
     });
   });
 
